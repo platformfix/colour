@@ -66,13 +66,6 @@ dockers:
     use: buildx
     build_flag_templates:
       - "--platform=linux/amd64"
-    # The Dockerfile builds the binary from source inside the image rather
-    # than using goreleaser's own build output, so its build context needs
-    # the source tree alongside the binary goreleaser stages by default.
-    extra_files:
-      - go.mod
-      - cmd
-      - internal
   - id: colour-arm64
     goos: linux
     goarch: arm64
@@ -82,10 +75,6 @@ dockers:
     use: buildx
     build_flag_templates:
       - "--platform=linux/arm64"
-    extra_files:
-      - go.mod
-      - cmd
-      - internal
 
 docker_manifests:
   - name_template: "ghcr.io/platformfix/colour:{{ .Version }}"

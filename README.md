@@ -29,7 +29,14 @@ kubectl port-forward svc/green 8081:80 &
 curl http://localhost:8081/
 ```
 
-Or install it via Helm:
+Or install it via Helm, straight from the OCI chart on GHCR (no `helm repo add`
+needed for OCI charts):
+
+```bash
+helm install colour oci://ghcr.io/platformfix/charts/colour --version 0.1.1
+```
+
+Or, for local development, straight from a clone:
 
 ```bash
 helm upgrade --install colour kubernetes/chart
@@ -59,6 +66,7 @@ The server reads two things from its environment:
 ```bash
 go test ./...
 golangci-lint run ./...
+goreleaser build --single-target --snapshot --clean -o colour
 docker build -t colour:dev .
 ```
 
