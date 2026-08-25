@@ -47,7 +47,13 @@ jobs:
 
       - name: Verify the page escapes a hostile request path
         run: |
-          body=$(curl -sf "http://localhost:8081/%3Cscript%3Ealert(1)%3C/script%3E")
+          # The payload lives in the query string, not the path: a path-based
+          # payload gets percent-re-encoded by curl/the URL parser before the
+          # handler ever sees it, so it can never appear literally in the
+          # response regardless of whether the handler escapes anything.
+          # RawQuery is preserved verbatim, so this is the request-controlled
+          # input that actually exercises the escaping.
+          body=$(curl -sf "http://localhost:8081/?%3Cscript%3Ealert(1)%3C/script%3E")
           echo "$body" | grep -qi "<script>" && {
             echo "response contains an unescaped <script> tag"
             exit 1
