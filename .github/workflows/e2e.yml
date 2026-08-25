@@ -1,0 +1,68 @@
+name: e2e
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e
+
+      - uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a
+        with:
+          context: .
+          load: true
+          tags: colour:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run the container
+        run: |
+          docker run -d --rm -p 8081:8080 -e HOSTNAME=blue-ci-e2e --name colour-e2e colour:ci
+          sleep 2
+
+      - name: Verify the page reflects the hostname
+        run: |
+          body=$(curl -sf http://localhost:8081/)
+          echo "$body" | grep -q "blue-ci-e2e" || {
+            echo "response did not mention the hostname"
+            echo "$body"
+            exit 1
+          }
+
+      - name: Verify the page escapes a hostile request path
+        run: |
+          body=$(curl -sf "http://localhost:8081/%3Cscript%3Ealert(1)%3C/script%3E")
+          echo "$body" | grep -qi "<script>" && {
+            echo "response contains an unescaped <script> tag"
+            exit 1
+          }
+          true
+
+      - name: Verify /healthz
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8081/healthz)
+          [ "$code" = "200" ] || { echo "expected 200 from /healthz, got $code"; exit 1; }
+
+      - name: Show logs on failure
+        if: failure()
+        run: docker logs colour-e2e || true
+
+      - name: Clean up
+        if: always()
+        run: docker stop colour-e2e || true
