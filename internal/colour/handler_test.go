@@ -54,6 +54,23 @@ func TestHandlerReportsPodColour(t *testing.T) {
 	}
 }
 
+func TestHandlerDisplaysNamespaceAndPodColour(t *testing.T) {
+	t.Setenv("HOSTNAME", "blue-7d9f9c5db4-abcde")
+	t.Setenv("NAMESPACE", "green")
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+
+	Handler(rec, req)
+
+	body := rec.Body.String()
+	if !strings.Contains(body, "pod green/blue-7d9f9c5db4-abcde") {
+		t.Fatalf("expected response to contain the %q display format, got: %s", "pod <namespace>/<hostname>", body)
+	}
+	if !strings.Contains(body, Circle("green")) {
+		t.Fatalf("expected response to contain the namespace's emoji circle %q, got: %s", Circle("green"), body)
+	}
+}
+
 func TestHealthz(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()

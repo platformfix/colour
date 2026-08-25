@@ -1,18 +1,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "colour.name" . }}
+  name: {{ include "colour.fullname" . }}
   labels:
     {{- include "colour.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "colour.labels" . | nindent 6 }}
+      {{- include "colour.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "colour.labels" . | nindent 8 }}
+        {{- include "colour.selectorLabels" . | nindent 8 }}
     spec:
       containers:
         - name: colour
