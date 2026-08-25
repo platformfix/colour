@@ -17,6 +17,7 @@ Open an issue for anything beyond a small fix, so we can agree on the approach b
 ```bash
 go test ./...
 golangci-lint run ./...
+goreleaser build --single-target --snapshot --clean -o colour
 docker build -t colour:dev .
 helm lint kubernetes/chart
 helm template colour kubernetes/chart

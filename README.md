@@ -59,6 +59,7 @@ The server reads two things from its environment:
 ```bash
 go test ./...
 golangci-lint run ./...
+goreleaser build --single-target --snapshot --clean -o colour
 docker build -t colour:dev .
 ```
 
