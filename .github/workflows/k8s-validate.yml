@@ -19,15 +19,15 @@ jobs:
   helm:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be0f245cb558e0f0a2
-      - uses: azure/setup-helm@5119fcb9089d430bedca60882686e1d4ec9a17da
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
       - run: helm lint kubernetes/chart
       - run: helm template colour kubernetes/chart
 
   kubeconform:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be0f245cb558e0f0a2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Install kubeconform
         run: |
           curl -sSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz kubeconform
