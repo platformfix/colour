@@ -1,0 +1,35 @@
+name: k8s-validate
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: k8s-validate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  helm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be0f245cb558e0f0a2
+      - uses: azure/setup-helm@5119fcb9089d430bedca60882686e1d4ec9a17da
+      - run: helm lint kubernetes/chart
+      - run: helm template colour kubernetes/chart
+
+  kubeconform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be0f245cb558e0f0a2
+      - name: Install kubeconform
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz kubeconform
+          sudo mv kubeconform /usr/local/bin/
+      - run: kubeconform -strict kubernetes/blue/*.yaml kubernetes/green/*.yaml
