@@ -1,0 +1,137 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Platform Fix
+#
+# GoReleaser config (v2). Builds the colour binary, builds and pushes a
+# multi-arch (amd64/arm64) image to GHCR, and cosign keyless-signs the
+# pushed manifest digest — GitHub's own OIDC identity is the signing
+# identity (Fulcio/Rekor), no key material anywhere. release.yml attaches
+# the image SBOM and SLSA provenance as separate steps after this runs, and
+# holds the GitHub Release as a draft until those land, then publishes it.
+version: 2
+
+project_name: colour
+
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - id: colour
+    main: ./cmd/colour
+    binary: colour
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+    goos: [linux]
+    goarch: [amd64, arm64]
+
+archives:
+  - id: colour
+    formats: [tar.gz]
+    name_template: "colour_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+signs:
+  - cmd: cosign
+    signature: "${artifact}.sigstore.json"
+    args:
+      - sign-blob
+      - "--bundle=${signature}"
+      - "${artifact}"
+      - --yes
+    artifacts: checksum
+    output: true
+
+sboms:
+  - id: archive
+    artifacts: archive
+    cmd: syft
+    args: ["$artifact", "--output", "spdx-json=$document"]
+    documents:
+      - "${artifact}.sbom.spdx.json"
+
+dockers:
+  - id: colour-amd64
+    goos: linux
+    goarch: amd64
+    dockerfile: Dockerfile
+    image_templates:
+      - "ghcr.io/platformfix/colour:{{ .Version }}-amd64"
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/amd64"
+    # The Dockerfile builds the binary from source inside the image rather
+    # than using goreleaser's own build output, so its build context needs
+    # the source tree alongside the binary goreleaser stages by default.
+    extra_files:
+      - go.mod
+      - cmd
+      - internal
+  - id: colour-arm64
+    goos: linux
+    goarch: arm64
+    dockerfile: Dockerfile
+    image_templates:
+      - "ghcr.io/platformfix/colour:{{ .Version }}-arm64"
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/arm64"
+    extra_files:
+      - go.mod
+      - cmd
+      - internal
+
+docker_manifests:
+  - name_template: "ghcr.io/platformfix/colour:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/platformfix/colour:{{ .Version }}-amd64"
+      - "ghcr.io/platformfix/colour:{{ .Version }}-arm64"
+  - name_template: "ghcr.io/platformfix/colour:latest"
+    image_templates:
+      - "ghcr.io/platformfix/colour:{{ .Version }}-amd64"
+      - "ghcr.io/platformfix/colour:{{ .Version }}-arm64"
+
+docker_signs:
+  - cmd: cosign
+    artifacts: manifests
+    args:
+      - "sign"
+      - "${artifact}"
+      - "--yes"
+
+changelog:
+  sort: asc
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\(.+\))??!?:.+$'
+      order: 0
+    - title: Bug fixes
+      regexp: '^.*?fix(\(.+\))??!?:.+$'
+      order: 1
+    - title: Documentation
+      regexp: '^.*?docs(\(.+\))??!?:.+$'
+      order: 2
+    - title: Other changes
+      order: 999
+  filters:
+    exclude:
+      - '^test(\(.+\))?:'
+      - '^ci(\(.+\))?:'
+      - '^chore(\(.+\))?:'
+      - '^style(\(.+\))?:'
+      - '^build(\(.+\))?:'
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-snapshot-{{ .ShortCommit }}"
+
+release:
+  github:
+    owner: platformfix
+    name: colour
+  draft: true
