@@ -14,9 +14,6 @@ A tiny web server for literal blue/green Kubernetes deployment demos: the
 page's background colour comes from the pod's hostname, so a Deployment
 named `blue` serves a blue page and one named `green` serves a green page.
 
-Inspired by [jpetazzo/color](https://github.com/jpetazzo/color), rebuilt for
-Platform Fix's own Kubernetes workshops.
-
 ## Quickstart
 
 Run the raw demo (the whole point of this tool):
